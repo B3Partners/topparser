@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="nl"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Top250NLConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">topnlparser</a> &gt; <a href="index.source.html" class="el_package">nl.b3p.topnl.converters</a> &gt; <span class="el_source">Top250NLConverter.java</span></div><h1>Top250NLConverter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (C) 2016 - 2017 B3Partners B.V.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package nl.b3p.topnl.converters;
+
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Polygon;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.bind.JAXBElement;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+import nl.b3p.topnl.TopNLType;
+import nl.b3p.topnl.entities.FunctioneelGebied;
+import nl.b3p.topnl.entities.Gebouw;
+import nl.b3p.topnl.entities.GeografischGebied;
+import nl.b3p.topnl.entities.Hoogte;
+import nl.b3p.topnl.entities.Inrichtingselement;
+import nl.b3p.topnl.entities.Plaats;
+import nl.b3p.topnl.entities.RegistratiefGebied;
+import nl.b3p.topnl.entities.Relief;
+import nl.b3p.topnl.entities.Spoorbaandeel;
+import nl.b3p.topnl.entities.Terrein;
+import nl.b3p.topnl.entities.TopNLEntity;
+import nl.b3p.topnl.entities.Waterdeel;
+import nl.b3p.topnl.entities.Wegdeel;
+import nl.b3p.topnl.top250nl.BRTJaNeeWaardeType;
+import nl.b3p.topnl.top250nl.CodeType;
+import nl.b3p.topnl.top250nl.FeatureMemberType;
+import nl.b3p.topnl.top250nl.FunctioneelGebiedType;
+import nl.b3p.topnl.top250nl.GebouwType;
+import nl.b3p.topnl.top250nl.GeografischGebiedType;
+import nl.b3p.topnl.top250nl.HoogteType;
+import nl.b3p.topnl.top250nl.Identificatie;
+import nl.b3p.topnl.top250nl.InrichtingselementType;
+import nl.b3p.topnl.top250nl.PlaatsType;
+import nl.b3p.topnl.top250nl.RegistratiefGebiedType;
+import nl.b3p.topnl.top250nl.ReliefType;
+import nl.b3p.topnl.top250nl.SpoorbaandeelType;
+import nl.b3p.topnl.top250nl.TerreinType;
+import nl.b3p.topnl.top250nl.Top250NlObjectType;
+import nl.b3p.topnl.top250nl.WaterdeelType;
+import nl.b3p.topnl.top250nl.WegdeelType;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+
+/**
+ *
+ * @author Meine Toonen
+ */
+<span class="fc" id="L69">public class Top250NLConverter extends Converter {</span>
+
+<span class="fc" id="L71">    protected final static Log log = LogFactory.getLog(Top250NLConverter.class);</span>
+    
+<span class="fc" id="L73">    protected SimpleDateFormat sdf = new SimpleDateFormat(&quot;yyyy-MM-dd&quot;);</span>
+    @Override
+    public List&lt;TopNLEntity&gt; convert(List jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L76">        List&lt;TopNLEntity&gt; entities = null;</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">        if (jaxbObject instanceof ArrayList) {</span>
+<span class="fc" id="L78">            entities = convertFeatureCollection(jaxbObject);</span>
+        } else {
+<span class="nc" id="L80">            entities = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L81">            entities.add(convertObject(jaxbObject));</span>
+        }
+<span class="fc" id="L83">        return entities;</span>
+    }
+
+    @Override
+    public List&lt;TopNLEntity&gt; convertFeatureCollection(List featureMembers) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+        
+<span class="fc" id="L89">        List&lt;TopNLEntity&gt; entities = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        for (Object fm : featureMembers) {</span>
+<span class="fc" id="L92">            FeatureMemberType featureMember = (FeatureMemberType)fm;</span>
+<span class="fc" id="L93">            JAXBElement jaxbObject = featureMember.getTop250NlObject();</span>
+<span class="fc" id="L94">            Object obj = jaxbObject.getValue();</span>
+<span class="fc" id="L95">            TopNLEntity entity = convertObject(obj);</span>
+<span class="fc" id="L96">            entities.add(entity);</span>
+<span class="fc" id="L97">        }</span>
+
+<span class="fc" id="L99">        return entities;</span>
+    }
+
+    @Override
+    public TopNLEntity convertObject(Object featureMember) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L104">        TopNLEntity entity = null;</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        if(featureMember instanceof FeatureMemberType){</span>
+<span class="fc" id="L106">            FeatureMemberType fm = (FeatureMemberType)featureMember;</span>
+<span class="fc" id="L107">            JAXBElement jaxbObject = fm.getTop250NlObject();</span>
+<span class="fc" id="L108">            return convertObject(jaxbObject.getValue());</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">        }else if (featureMember instanceof HoogteType) {</span>
+<span class="fc" id="L110">            entity = convertHoogte(featureMember);</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        } else if (featureMember instanceof FunctioneelGebiedType) {</span>
+<span class="fc" id="L112">            entity = convertFunctioneelGebied(featureMember);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        } else if (featureMember instanceof GebouwType) {</span>
+<span class="fc" id="L114">            entity = convertGebouw(featureMember);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        } else if (featureMember instanceof GeografischGebiedType) {</span>
+<span class="fc" id="L116">            entity = convertGeografischGebied(featureMember);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        } else if (featureMember instanceof InrichtingselementType) {</span>
+<span class="fc" id="L118">            entity = convertInrichtingselement(featureMember);</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">        } else if (featureMember instanceof PlaatsType) {</span>
+<span class="fc" id="L120">            entity = convertPlaats(featureMember);</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        } else if (featureMember instanceof RegistratiefGebiedType) {</span>
+<span class="fc" id="L122">            entity = convertRegistratiefGebied(featureMember);</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        } else if (featureMember instanceof ReliefType) {</span>
+<span class="fc" id="L124">            entity = convertRelief(featureMember);</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">        } else if (featureMember instanceof SpoorbaandeelType) {</span>
+<span class="fc" id="L126">            entity = convertSpoorbaandeel(featureMember);</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        } else if (featureMember instanceof TerreinType) {</span>
+<span class="fc" id="L128">            entity = convertTerrein(featureMember);</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        } else if (featureMember instanceof WaterdeelType) {</span>
+<span class="fc" id="L130">            entity = convertWaterdeel(featureMember);</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        } else if (featureMember instanceof WegdeelType) {</span>
+<span class="fc" id="L132">            entity = convertWegdeel(featureMember);</span>
+        } else {
+<span class="nc" id="L134">            throw new IllegalArgumentException(&quot;Type not recognized: &quot; + featureMember.getClass());</span>
+        }
+<span class="fc" id="L136">        log.debug(&quot;Converted type &quot; + entity.getClass());</span>
+<span class="fc" id="L137">        entity.setTopnltype(TopNLType.TOP250NL.getType());</span>
+<span class="fc" id="L138">        return entity;</span>
+    }
+
+    @Override
+    public Hoogte convertHoogte(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L143">        HoogteType h = (HoogteType) jaxbObject;</span>
+
+<span class="fc" id="L145">        Hoogte hoogte = new Hoogte();</span>
+<span class="fc" id="L146">        convertTop250NlObjectType(h, hoogte);</span>
+
+<span class="fc" id="L148">        hoogte.setTypeHoogte(h.getTypeHoogte().getValue());</span>
+
+<span class="fc" id="L150">        hoogte.setHoogte(h.getHoogte());</span>
+<span class="pc bpc" id="L151" title="1 of 2 branches missed.">        hoogte.setObjectEindTijd(h.getObjectEindTijd() != null ? h.getObjectEindTijd().getTime() : null);</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">        hoogte.setReferentieVlak(h.getReferentievlak() != null ? h.getReferentievlak().getValue() : null);</span>
+
+<span class="fc" id="L154">        Element el = h.getGeometrie();</span>
+<span class="fc" id="L155">        Geometry geom = gc.convertGeometry(el);</span>
+<span class="fc" id="L156">        hoogte.setGeometrie(geom);</span>
+
+<span class="fc" id="L158">        return hoogte;</span>
+    }
+
+    public String convertIdentificatie(Identificatie identificatie) {
+<span class="fc" id="L162">        String idString = identificatie.getNEN3610ID().getNamespace() + &quot;.&quot; + identificatie.getNEN3610ID().getLokaalID();</span>
+<span class="fc" id="L163">        return idString;</span>
+    }
+
+    private void convertTop250NlObjectType(Top250NlObjectType type, TopNLEntity entity) {
+<span class="fc" id="L167">        entity.setIdentificatie(convertIdentificatie(type.getIdentificatie()));</span>
+<span class="fc" id="L168">        entity.setBrontype(type.getBrontype().getValue());</span>
+<span class="fc" id="L169">        entity.setBronactualiteit(type.getBronactualiteit().getTime());</span>
+<span class="fc" id="L170">        entity.setBronbeschrijving(type.getBronbeschrijving());</span>
+<span class="fc" id="L171">        entity.setBronnauwkeurigheid(type.getBronnauwkeurigheid());</span>
+<span class="fc" id="L172">        entity.setObjectBeginTijd(type.getObjectBeginTijd().getTime());</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">        entity.setVisualisatieCode(type.getVisualisatieCode() != null ? type.getVisualisatieCode().longValue() : null);</span>
+<span class="fc" id="L174">    }</span>
+
+    @Override
+    public FunctioneelGebied convertFunctioneelGebied(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L178">        FunctioneelGebiedType f = (FunctioneelGebiedType) jaxbObject;</span>
+
+<span class="fc" id="L180">        FunctioneelGebied fg = new FunctioneelGebied();</span>
+<span class="fc" id="L181">        convertTop250NlObjectType(f, fg);</span>
+
+<span class="fc" id="L183">        fg.setTypeFunctioneelGebied(f.getTypeFunctioneelGebied().getValue());</span>
+<span class="fc" id="L184">        fg.setNaamFries(String.join(&quot;,&quot;, f.getNaamFries()));</span>
+<span class="fc" id="L185">        fg.setNaamNL(String.join(&quot;,&quot;, f.getNaamNL()));</span>
+<span class="fc" id="L186">        fg.setSoortnaam(f.getSoortnaam());</span>
+
+<span class="fc" id="L188">        fg.setGeometrie(gc.convertGeometry(f.getGeometrie()));</span>
+<span class="fc" id="L189">        return fg;</span>
+    }
+
+    @Override
+    public Gebouw convertGebouw(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L194">        GebouwType g = (GebouwType) jaxbObject;</span>
+
+<span class="fc" id="L196">        Gebouw gb = new Gebouw();</span>
+<span class="fc" id="L197">        convertTop250NlObjectType(g, gb);</span>
+<span class="fc" id="L198">        String types = &quot;&quot;;</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        for (CodeType codeType : g.getTypeGebouw()) {</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">            if (types.length() != 0) {</span>
+<span class="nc" id="L201">                types += &quot;,&quot;;</span>
+            }
+<span class="fc" id="L203">            types += codeType.getValue();</span>
+<span class="fc" id="L204">        }</span>
+
+<span class="fc" id="L206">        gb.setTypeGebouw(types);</span>
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">        gb.setStatus(g.getStatus() != null ? g.getStatus().getValue() : null);</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">        gb.setFysiekVoorkomen(g.getFysiekVoorkomen() != null ? g.getFysiekVoorkomen().getValue() : null);</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">        gb.setHoogteklasse(g.getHoogteklasse() != null ? g.getHoogteklasse().getValue() : null);</span>
+<span class="fc" id="L210">        gb.setHoogte(g.getHoogte());</span>
+<span class="fc" id="L211">        gb.setSoortnaam(g.getSoortnaam());</span>
+<span class="fc" id="L212">        gb.setNaam(String.join(&quot;,&quot;, g.getNaam()));</span>
+
+<span class="fc" id="L214">        gb.setGeometrie(gc.convertGeometry(g.getGeometrie()));</span>
+<span class="fc" id="L215">        return gb;</span>
+    }
+
+    @Override
+    public GeografischGebied convertGeografischGebied(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L220">        GeografischGebiedType g = (GeografischGebiedType) jaxbObject;</span>
+
+<span class="fc" id="L222">        GeografischGebied gb = new GeografischGebied();</span>
+<span class="fc" id="L223">        convertTop250NlObjectType(g, gb);</span>
+
+<span class="fc" id="L225">        gb.setGeometrie(gc.convertGeometry(g.getGeometrie()));</span>
+
+<span class="fc" id="L227">        gb.setNaamFries(String.join(&quot;,&quot;, g.getNaamFries()));</span>
+<span class="fc" id="L228">        gb.setNaamNL(String.join(&quot;,&quot;, g.getNaamNL()));</span>
+<span class="fc" id="L229">        gb.setTypeGeografischGebied(g.getTypeGeografischGebied().getValue());</span>
+<span class="fc" id="L230">        return gb;</span>
+    }
+
+    @Override
+    public Inrichtingselement convertInrichtingselement(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L235">        InrichtingselementType i = (InrichtingselementType) jaxbObject;</span>
+
+<span class="fc" id="L237">        Inrichtingselement ie = new Inrichtingselement();</span>
+<span class="fc" id="L238">        convertTop250NlObjectType(i, ie);</span>
+
+<span class="fc" id="L240">        ie.setGeometrie(gc.convertGeometry(i.getGeometrie()));</span>
+
+<span class="fc" id="L242">        ie.setSoortnaam(i.getSoortnaam());</span>
+<span class="fc" id="L243">        ie.setTypeInrichtingselement(i.getTypeInrichtingselement().getValue());</span>
+
+<span class="fc" id="L245">        return ie;</span>
+    }
+
+    @Override
+    public Plaats convertPlaats(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L250">        PlaatsType p = (PlaatsType) jaxbObject;</span>
+
+<span class="fc" id="L252">        Plaats pl = new Plaats();</span>
+<span class="fc" id="L253">        convertTop250NlObjectType(p, pl);</span>
+
+<span class="fc" id="L255">        pl.setGeometrie(gc.convertGeometry(p.getGeometrie()));</span>
+
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">        pl.setAantalInwoners(p.getAantalinwoners() != null ? p.getAantalinwoners().longValue() : null);</span>
+<span class="fc" id="L258">        pl.setNaamFries(p.getNaamFries());</span>
+<span class="fc" id="L259">        pl.setNaamNL(p.getNaamNL());</span>
+<span class="fc" id="L260">        pl.setNaamOfficieel(p.getNaamOfficieel());</span>
+<span class="fc" id="L261">        pl.setTypeGebied(p.getTypeGebied().getValue());</span>
+
+<span class="fc" id="L263">        return pl;</span>
+    }
+
+    @Override
+    public RegistratiefGebied convertRegistratiefGebied(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L268">        RegistratiefGebiedType r = (RegistratiefGebiedType) jaxbObject;</span>
+
+<span class="fc" id="L270">        RegistratiefGebied rg = new RegistratiefGebied();</span>
+<span class="fc" id="L271">        convertTop250NlObjectType(r, rg);</span>
+
+<span class="fc" id="L273">        rg.setGeometrie(gc.convertGeometry(r.getGeometrie()));</span>
+
+<span class="fc" id="L275">        rg.setNaamFries(String.join(&quot;,&quot;, r.getNaamFries()));</span>
+<span class="fc" id="L276">        rg.setNaamNL(String.join(&quot;,&quot;, r.getNaamNL()));</span>
+<span class="fc" id="L277">        rg.setNaamOfficieel(r.getNaamOfficieel());</span>
+<span class="fc" id="L278">        rg.setNummer(String.join(&quot;,&quot;, r.getNummer()));</span>
+<span class="fc" id="L279">        rg.setTypeRegistratiefGebied(r.getTypeRegistratiefGebied().getValue());</span>
+
+<span class="fc" id="L281">        return rg;</span>
+    }
+
+    @Override
+    public Relief convertRelief(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L286">        ReliefType r = (ReliefType) jaxbObject;</span>
+
+<span class="fc" id="L288">        Relief rg = new Relief();</span>
+<span class="fc" id="L289">        convertTop250NlObjectType(r, rg);</span>
+
+<span class="fc" id="L291">        rg.setGeometrie((LineString) gc.convertGeometry(r.getLijnGeometrie()));</span>
+
+<span class="fc" id="L293">        rg.setHoogteklasse(r.getHoogteklasse().getValue());</span>
+<span class="fc" id="L294">        rg.setTypeRelief(r.getTypeRelief().getValue());</span>
+
+<span class="fc" id="L296">        return rg;</span>
+    }
+
+    @Override
+    public Spoorbaandeel convertSpoorbaandeel(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L301">        SpoorbaandeelType r = (SpoorbaandeelType) jaxbObject;</span>
+
+<span class="fc" id="L303">        Spoorbaandeel rg = new Spoorbaandeel();</span>
+<span class="fc" id="L304">        convertTop250NlObjectType(r, rg);</span>
+
+<span class="fc" id="L306">        rg.setGeometrie((LineString) gc.convertGeometry(r.getGeometrie()));</span>
+
+<span class="fc" id="L308">        rg.setTypeInfrastructuur(r.getTypeInfrastructuur().getValue());</span>
+<span class="fc" id="L309">        rg.setTypeSpoorbaan(r.getTypeSpoorbaan().getValue());</span>
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">        rg.setFysiekVoorkomen(r.getFysiekVoorkomen() != null ? r.getFysiekVoorkomen().getValue() : null);</span>
+<span class="fc" id="L311">        rg.setSpoorbreedte(r.getSpoorbreedte().getValue());</span>
+<span class="fc" id="L312">        rg.setAantalSporen(r.getAantalSporen().getValue());</span>
+<span class="fc" id="L313">        rg.setVervoerfunctie(r.getVervoerfunctie().getValue());</span>
+<span class="pc bpc" id="L314" title="1 of 2 branches missed.">        rg.setElektrificatie(r.getElektrificatie() == BRTJaNeeWaardeType.JA);</span>
+<span class="fc" id="L315">        rg.setStatus(r.getStatus().getValue());</span>
+<span class="fc" id="L316">        rg.setBrugnaam(r.getBrugnaam());</span>
+<span class="fc" id="L317">        rg.setTunnelnaam(r.getTunnelnaam());</span>
+<span class="fc" id="L318">        rg.setBaanvaknaam(r.getBaanvaknaam());</span>
+
+<span class="fc" id="L320">        return rg;</span>
+    }
+
+    @Override
+    public Terrein convertTerrein(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L325">        TerreinType r = (TerreinType) jaxbObject;</span>
+
+<span class="fc" id="L327">        Terrein rg = new Terrein();</span>
+<span class="fc" id="L328">        convertTop250NlObjectType(r, rg);</span>
+
+<span class="fc" id="L330">        rg.setGeometrie((Polygon) gc.convertGeometry(r.getGeometrieVlak()));</span>
+
+<span class="fc" id="L332">        rg.setNaam(r.getNaam());</span>
+<span class="pc bpc" id="L333" title="1 of 2 branches missed.">        rg.setTypeLandgebruik(r.getTypeLandgebruik() != null ? r.getTypeLandgebruik().getValue() : null);</span>
+
+<span class="fc" id="L335">        return rg;</span>
+    }
+
+    @Override
+    public Waterdeel convertWaterdeel(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L340">        WaterdeelType r = (WaterdeelType) jaxbObject;</span>
+
+<span class="fc" id="L342">        Waterdeel rg = new Waterdeel();</span>
+<span class="fc" id="L343">        convertTop250NlObjectType(r, rg);</span>
+
+<span class="fc" id="L345">        rg.setGeometrie(gc.convertGeometry(r.getGeometrie()));</span>
+
+<span class="pc bpc" id="L347" title="1 of 2 branches missed.">        rg.setTypeWater(r.getTypeWater() != null ? r.getTypeWater().getValue() : null);</span>
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">        rg.setBreedteklasse(r.getBreedteklasse() != null ? r.getBreedteklasse().getValue() : null);</span>
+<span class="pc bpc" id="L349" title="1 of 2 branches missed.">        rg.setFysiekVoorkomen(r.getFysiekVoorkomen() != null ? r.getFysiekVoorkomen().getValue() : null);</span>
+<span class="pc bpc" id="L350" title="1 of 2 branches missed.">        rg.setVoorkomen(r.getVoorkomen() != null ? r.getVoorkomen().getValue() : null);</span>
+<span class="pc bpc" id="L351" title="1 of 2 branches missed.">        rg.setGetijdeinvloed(r.getGetijdeinvloed() == BRTJaNeeWaardeType.JA);</span>
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">        rg.setVaarwegklasse(r.getVaarwegklasse() != null ? r.getVaarwegklasse().getValue() : null);</span>
+<span class="fc" id="L353">        rg.setNaamOfficieel(r.getNaamOfficieel());</span>
+<span class="fc" id="L354">        rg.setNaamNL(String.join(&quot;,&quot;, r.getNaamNL()));</span>
+<span class="fc" id="L355">        rg.setNaamFries(String.join(&quot;,&quot;, r.getNaamFries()));</span>
+<span class="pc bpc" id="L356" title="1 of 2 branches missed.">        rg.setIsBAGnaam(r.getIsBAGnaam() == BRTJaNeeWaardeType.JA);</span>
+<span class="fc" id="L357">        rg.setSluisnaam(r.getSluisnaam());</span>
+<span class="fc" id="L358">        rg.setBrugnaam(r.getBrugnaam());</span>
+<span class="fc" id="L359">        return rg;</span>
+    }
+
+    @Override
+    public Wegdeel convertWegdeel(Object jaxbObject) throws IOException, SAXException, ParserConfigurationException, TransformerException {
+<span class="fc" id="L364">        WegdeelType r = (WegdeelType) jaxbObject;</span>
+
+<span class="fc" id="L366">        Wegdeel rg = new Wegdeel();</span>
+<span class="fc" id="L367">        convertTop250NlObjectType(r, rg);</span>
+
+<span class="fc" id="L369">        String types = &quot;&quot;;</span>
+<span class="pc bpc" id="L370" title="1 of 2 branches missed.">        for (CodeType codeType : r.getFysiekVoorkomen()) {</span>
+<span class="nc bnc" id="L371" title="All 2 branches missed.">            if (types.length() != 0) {</span>
+<span class="nc" id="L372">                types += &quot;,&quot;;</span>
+            }
+<span class="nc" id="L374">            types += codeType.getValue();</span>
+<span class="nc" id="L375">        }</span>
+<span class="fc" id="L376">        rg.setFysiekVoorkomen(types);</span>
+
+<span class="fc" id="L378">        rg.setGeometrie(gc.convertGeometry(r.getGeometrie()));</span>
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">        rg.setTypeInfrastructuur(r.getTypeInfrastructuur() != null ? r.getTypeInfrastructuur().getValue() : null);</span>
+<span class="pc bpc" id="L380" title="1 of 2 branches missed.">        rg.setTypeWeg(r.getTypeWeg() != null ? r.getTypeWeg().getValue() : null);</span>
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">        rg.setHoofdverkeersgebruik(r.getHoofdverkeersgebruik() != null ? r.getHoofdverkeersgebruik().getValue() : null);</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">        rg.setVerhardingsbreedteklasse(r.getVerhardingsbreedteklasse() != null ? r.getVerhardingsbreedteklasse().getValue() : null);</span>
+<span class="pc bpc" id="L383" title="1 of 2 branches missed.">        rg.setGescheidenRijbaan(r.getGescheidenRijbaan() == BRTJaNeeWaardeType.JA);</span>
+<span class="pc bpc" id="L384" title="1 of 2 branches missed.">        rg.setVerhardingstype(r.getVerhardingstype() != null ? r.getVerhardingstype().getValue() : null);</span>
+<span class="pc bpc" id="L385" title="1 of 2 branches missed.">        rg.setAantalRijstroken(r.getAantalRijstroken() != null ? r.getAantalRijstroken().longValue() : null);</span>
+<span class="pc bpc" id="L386" title="1 of 2 branches missed.">        rg.setStatus(r.getStatus() != null ? r.getStatus().getValue() : null);</span>
+<span class="fc" id="L387">        rg.setNaam(String.join(&quot;,&quot;,r.getNaam()));</span>
+<span class="pc bpc" id="L388" title="1 of 2 branches missed.">        rg.setIsBAGnaam(r.getIsBAGnaam() == BRTJaNeeWaardeType.JA);</span>
+<span class="fc" id="L389">        rg.setaWegnummer(String.join(&quot;,&quot;, r.getAWegnummer()));</span>
+<span class="fc" id="L390">        rg.setnWegnummer(String.join(&quot;,&quot;, r.getNWegnummer()));</span>
+<span class="fc" id="L391">        rg.seteWegnummer(String.join(&quot;,&quot;, r.getEWegnummer()));</span>
+<span class="fc" id="L392">        rg.setsWegnummer(String.join(&quot;,&quot;, r.getSWegnummer()));</span>
+<span class="fc" id="L393">        rg.setAfritnummer(r.getAfritnummer());</span>
+<span class="fc" id="L394">        rg.setAfritnaam(r.getAfritnaam());</span>
+<span class="fc" id="L395">        rg.setKnooppuntnaam(r.getKnooppuntnaam());</span>
+<span class="fc" id="L396">        rg.setBrugnaam(r.getBrugnaam());</span>
+<span class="fc" id="L397">        rg.setTunnelnaam(r.getTunnelnaam());</span>
+<span class="fc" id="L398">        return rg;</span>
+    }    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>
