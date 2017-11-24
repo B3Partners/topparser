@@ -1,2 +1,2 @@
 # topparser
-Dit projec tis opgenomen in de BRMO: https://github.com/B3Partners/brmo
+Dit project is opgenomen in de BRMO: https://github.com/B3Partners/brmo. Verdere ontwikkeling vindt daar plaats.
